@@ -1,3 +1,5 @@
+abort "Run rake db:migrate before bootstrapping the portfolio" if ActiveRecord::Base.connection_pool.migration_context.needs_migration?
+
 definitions = RedminePortfolio::Definitions
 
 # Serialise first-time initialisation across application starts and manual runners.

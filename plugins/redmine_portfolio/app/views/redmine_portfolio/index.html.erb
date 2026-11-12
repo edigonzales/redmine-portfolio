@@ -1,0 +1,103 @@
+<% html_title t('ppm.title') %>
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'portfolio', plugin: 'redmine_portfolio' %>
+<% end %>
+
+<div class="ppm">
+  <h2><%= t('ppm.title') %></h2>
+  <% if @report %>
+    <p class="ppm-muted"><%= t('ppm.visible_count', count: @report.visible_count) %></p>
+    <%= form_with url: portfolio_path, method: :get, class: 'ppm-filters' do %>
+      <% @report.options.each do |key, values| %>
+        <% next if values.empty? %>
+        <div>
+          <%= label_tag "ppm-#{key}", t("ppm.#{key}") %>
+          <%= select_tag key, options_for_select(values, @report.filters[key]),
+                         include_blank: t('ppm.any'), id: "ppm-#{key}" %>
+        </div>
+      <% end %>
+      <% if @report.metric %>
+        <%= hidden_field_tag :metric, @report.metric %>
+      <% end %>
+      <%= submit_tag t('ppm.filter'), name: nil %>
+      <% if @report.filters.any? || @report.metric %>
+        <%= link_to t('ppm.reset'), portfolio_path %>
+      <% end %>
+    <% end %>
+
+    <div class="ppm-kpis">
+      <% @report.metrics.each do |key, count| %>
+        <% active = @report.metric == key %>
+        <%= link_to portfolio_path(@report.filters.merge(metric: active ? nil : key)),
+                    class: 'ppm-kpi', aria: {current: active ? 'true' : nil}, data: {metric: key} do %>
+          <span class="ppm-kpi-value"><%= count %></span>
+          <span><%= t("ppm.metrics.#{key}") %></span>
+        <% end %>
+      <% end %>
+    </div>
+
+    <% health_codes = {'Grün' => 'green', 'Gelb' => 'yellow', 'Rot' => 'red', nil => 'unassessed'} %>
+    <section class="ppm-distribution">
+      <h3><%= t('ppm.distribution') %></h3>
+      <% total = @report.distribution.values.sum %>
+      <% if total.positive? %>
+        <div class="ppm-bar" aria-hidden="true">
+          <% @report.distribution.each do |health, count| %>
+            <% if count.positive? %>
+              <span class="ppm-<%= health_codes.fetch(health) %>" style="flex-grow: <%= count %>"></span>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+      <ul class="ppm-legend">
+        <% @report.distribution.each do |health, count| %>
+          <% code = health_codes.fetch(health) %>
+          <li class="ppm-<%= code %>"><%= t("ppm.health_labels.#{code}") %> <strong><%= count %></strong></li>
+        <% end %>
+      </ul>
+    </section>
+
+    <h3 id="ppm-projects"><%= t('ppm.projects') %> (<%= @report.rows.size %>)</h3>
+    <% if @report.rows.empty? %>
+      <p class="ppm-empty"><%= t(@report.visible_count.zero? ? 'ppm.empty' : 'ppm.no_match') %></p>
+    <% else %>
+      <div class="ppm-table" role="region" aria-labelledby="ppm-projects" tabindex="0">
+        <table class="list">
+          <thead>
+            <tr>
+              <% %i[project department phase health priority leads due_date next_step].each do |column| %>
+                <th scope="col"><%= t("ppm.#{column}") %></th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <% @report.rows.each do |row| %>
+              <tr>
+                <th scope="row"><%= link_to row.fetch(:project).name, project_path(row.fetch(:project)) %></th>
+                <td><%= row[:department] || '–' %></td>
+                <td><%= row[:phase] || '–' %></td>
+                <td>
+                  <% if row.key?(:health) %>
+                    <% code = health_codes.fetch(row[:health]) %>
+                    <span class="ppm-badge ppm-<%= code %>"><%= t("ppm.health_labels.#{code}") %></span>
+                  <% else %>
+                    –
+                  <% end %>
+                </td>
+                <td><%= row[:priority] || '–' %></td>
+                <td><%= row.fetch(:leads).join(', ').presence || '–' %></td>
+                <td class="ppm-date"><%= row[:due_date] ? format_date(row[:due_date]) : '–' %></td>
+                <td class="ppm-next"><%= row[:next_step] || '–' %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  <% else %>
+    <p class="ppm-empty"><%= t('ppm.unavailable') %></p>
+    <% if @configuration_error %>
+      <p class="ppm-muted"><%= @configuration_error %></p>
+    <% end %>
+  <% end %>
+</div>

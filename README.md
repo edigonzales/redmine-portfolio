@@ -49,3 +49,7 @@ curl -fsS -o /dev/null http://localhost:3000/login
 PostgreSQL muss als `healthy` erscheinen. Prüfe auf der Login-Seite
 den Theme-Wechsel im oberen Menü und nach `docker compose down` und
 `docker compose up -d` die Anmeldung und die vorhandenen Demoprojekte.
+
+Das Dashboard ist nach der Anmeldung über [Portfolio](http://localhost:3000/portfolio)
+erreichbar. Die GET-Filter heissen `department`, `phase` und `health`.
+Eine KPI-Kachel setzt `metric` und schränkt damit die Projektliste ein.
