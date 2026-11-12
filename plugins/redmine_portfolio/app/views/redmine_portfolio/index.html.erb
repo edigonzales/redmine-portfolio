@@ -19,8 +19,11 @@
       <% if @report.metric %>
         <%= hidden_field_tag :metric, @report.metric %>
       <% end %>
+      <% @report.sort_params.each do |key, value| %>
+        <%= hidden_field_tag key, value %>
+      <% end %>
       <%= submit_tag t('ppm.filter'), name: nil %>
-      <% if @report.filters.any? || @report.metric %>
+      <% if @report.filters.any? || @report.metric || @report.sort_params.any? %>
         <%= link_to t('ppm.reset'), portfolio_path %>
       <% end %>
     <% end %>
@@ -28,7 +31,7 @@
     <div class="ppm-kpis">
       <% @report.metrics.each do |key, count| %>
         <% active = @report.metric == key %>
-        <%= link_to portfolio_path(@report.filters.merge(metric: active ? nil : key)),
+        <%= link_to portfolio_path(@report.filters.merge(@report.sort_params).merge(metric: active ? nil : key)),
                     class: 'ppm-kpi', aria: {current: active ? 'true' : nil}, data: {metric: key} do %>
           <span class="ppm-kpi-value"><%= count %></span>
           <span><%= t("ppm.metrics.#{key}") %></span>
@@ -36,7 +39,7 @@
       <% end %>
     </div>
 
-    <% health_codes = {'Grün' => 'green', 'Gelb' => 'yellow', 'Rot' => 'red', nil => 'unassessed'} %>
+    <% health_codes = RedminePortfolio::Report::HEALTH_CODES %>
     <section class="ppm-distribution">
       <h3><%= t('ppm.distribution') %></h3>
       <% total = @report.distribution.values.sum %>
@@ -65,8 +68,14 @@
         <table class="list">
           <thead>
             <tr>
-              <% %i[project department phase health priority leads due_date next_step].each do |column| %>
-                <th scope="col"><%= t("ppm.#{column}") %></th>
+              <% RedminePortfolio::Report::COLUMNS.each do |column| %>
+                <% active = @report.sort == column %>
+                <th scope="col"<% if active %> aria-sort="<%= @report.direction == 'asc' ? 'ascending' : 'descending' %>"<% end %>>
+                  <%= link_to portfolio_path(@report.sort_link_params(column)), class: 'ppm-sort' do %>
+                    <%= t("ppm.#{column}") %>
+                    <span aria-hidden="true"><%= active ? (@report.direction == 'asc' ? '↑' : '↓') : '↕' %></span>
+                  <% end %>
+                </th>
               <% end %>
             </tr>
           </thead>
