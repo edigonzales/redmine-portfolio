@@ -1,0 +1,8 @@
+*
+!Dockerfile
+!docker/
+!docker/**
+!scripts/
+!scripts/bootstrap.rb
+!plugins/
+!plugins/**
