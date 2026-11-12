@@ -19,3 +19,33 @@ deutsche Standardkonfiguration.
 aus `.env` auszugeben. `docker compose down` stoppt die Umgebung.
 Datenbank und Uploads liegen in benannten Volumes und bleiben beim
 normalen Stoppen und Neuerstellen der Container erhalten.
+
+## Demodaten
+
+Beim ersten Start entstehen das Projektportfolio, 15 private Projekte,
+fünf Demobenutzer und drei Tickets. Die Passwörter stehen in `.env`.
+
+| Login | Rolle |
+|---|---|
+| `admin` | Systemadministration |
+| `lead_geo` | Projektleitung Geoinformation |
+| `member_geo` | Projektmitarbeiter Geoinformation |
+| `reader_geo` | Portfolio-Leser Geoinformation |
+| `lead_it` | Projektleitung Informatik |
+| `nonmember` | Benutzer ohne Projektmitgliedschaft |
+
+`docker compose exec -T redmine rails runner scripts/bootstrap.rb`
+führt die Initialisierung erneut aus. Bereits initialisierte Demodaten
+und Projektänderungen bleiben erhalten.
+
+## Betriebsprüfung
+
+```sh
+docker compose config --quiet
+docker compose ps
+curl -fsS -o /dev/null http://localhost:3000/login
+```
+
+PostgreSQL muss als `healthy` erscheinen. Prüfe auf der Login-Seite
+den Theme-Wechsel im oberen Menü und nach `docker compose down` und
+`docker compose up -d` die Anmeldung und die vorhandenen Demoprojekte.

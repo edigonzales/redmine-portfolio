@@ -11,6 +11,11 @@ services:
       REDMINE_DB_PASSWORD: ${POSTGRES_PASSWORD:?Run ./scripts/setup-secrets}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Run ./scripts/setup-secrets}
       PORTFOLIO_ADMIN_PASSWORD: ${PORTFOLIO_ADMIN_PASSWORD:?Run ./scripts/setup-secrets}
+      PORTFOLIO_LEAD_GEO_PASSWORD: ${PORTFOLIO_LEAD_GEO_PASSWORD:?Run ./scripts/setup-secrets}
+      PORTFOLIO_MEMBER_GEO_PASSWORD: ${PORTFOLIO_MEMBER_GEO_PASSWORD:?Run ./scripts/setup-secrets}
+      PORTFOLIO_READER_GEO_PASSWORD: ${PORTFOLIO_READER_GEO_PASSWORD:?Run ./scripts/setup-secrets}
+      PORTFOLIO_LEAD_IT_PASSWORD: ${PORTFOLIO_LEAD_IT_PASSWORD:?Run ./scripts/setup-secrets}
+      PORTFOLIO_NONMEMBER_PASSWORD: ${PORTFOLIO_NONMEMBER_PASSWORD:?Run ./scripts/setup-secrets}
     ports:
       - "127.0.0.1:${REDMINE_PORT:-3000}:3000"
     volumes:
