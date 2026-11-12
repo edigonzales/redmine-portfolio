@@ -1,0 +1,21 @@
+body.theme-Opale #header #project-jump .drdn-trigger {
+  position: relative;
+  box-sizing: border-box;
+  max-inline-size: min(18rem, 35vw);
+  padding-inline-end: 2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.theme-Opale #header #project-jump .drdn-trigger::after {
+  inset-inline-end: .5rem;
+  margin-inline-end: 0;
+}
+
+@media screen and (max-width: 899px) {
+  body.theme-Opale #header #project-jump .drdn-trigger {
+    max-inline-size: 100%;
+    padding-inline-end: .5rem;
+  }
+}

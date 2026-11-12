@@ -10,3 +10,4 @@ Redmine::Plugin.register :redmine_portfolio do
 end
 
 Project.include RedminePortfolio::ProjectPhaseValidation
+RedminePortfolio::OpaleHooks

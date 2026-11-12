@@ -130,6 +130,64 @@ class PortfolioTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test 'all portfolio columns sort in both directions using displayed values' do
+    first = Project.find_by!(identifier: 'datenportal')
+    second = Project.find_by!(identifier: 'digitales-archiv')
+    set_fields(first, department: 'Geoinformation', phase: 'Umsetzung', health: 'Grün',
+                      priority: 'Hoch', due_date: '2027-01-09', next_step: 'Alpha')
+    set_fields(second, department: 'Informatik', phase: 'Geplant', health: nil,
+                       priority: 'Niedrig', due_date: '2027-02-01', next_step: 'Zulu')
+
+    I18n.with_locale(:de) do
+      %w[project department phase health priority leads due_date next_step].each do |column|
+        ascending = column == 'phase' ? [second, first] : [first, second]
+        %w[asc desc].each do |direction|
+          projects = report(sort: column, direction: direction).rows.map { |row| row[:project] }
+          assert_equal(direction == 'asc' ? ascending : ascending.reverse,
+                       projects.select { |project| [first, second].include?(project) },
+                       "#{column} #{direction}")
+        end
+      end
+    end
+  end
+
+  test 'sorting keeps ties deterministic and missing or hidden values last' do
+    first = Project.find_by!(identifier: 'datenportal')
+    second = Project.find_by!(identifier: 'gretl-runtime')
+    missing = Project.find_by!(identifier: 'geodaten-api')
+    set_fields(first, due_date: '2027-01-09')
+    set_fields(second, due_date: '2027-01-09')
+    set_fields(missing, due_date: nil)
+    @fields[:health].update!(visible: false)
+
+    %w[asc desc].each do |direction|
+      dates = report(sort: 'due_date', direction: direction).rows.map { |row| row[:project] }
+      assert_equal [first, second, missing], dates.select { |project| [first, second, missing].include?(project) }
+      hidden = report(@reader, sort: 'health', direction: direction)
+      assert hidden.rows.none? { |row| row.key?(:health) }
+      assert_equal report(@reader).rows, hidden.rows
+    end
+    assert_equal report.rows, report(sort: ['health'], direction: 'desc').rows
+    assert_equal report.rows, report(sort: 'health', direction: {bad: 'desc'}).rows
+  end
+
+  test 'sort links retain filters and KPI links and form retain the sort' do
+    log_in('admin')
+    get '/portfolio', params: {department: 'Geoinformation', metric: 'critical', sort: 'due_date', direction: 'desc'}
+    assert_response :success
+    assert_select 'thead a.ppm-sort', count: 8
+    assert_select 'th[aria-sort=descending] a.ppm-sort', text: /Zieltermin|Target date/ do |links|
+      params = Rack::Utils.parse_query(URI.parse(links.first['href']).query)
+      assert_equal({'department' => 'Geoinformation', 'metric' => 'critical', 'sort' => 'due_date', 'direction' => 'asc'}, params)
+    end
+    assert_select 'input[name=sort][value=due_date]'
+    assert_select 'input[name=direction][value=desc]'
+    assert_select 'a[data-metric=critical]' do |links|
+      params = Rack::Utils.parse_query(URI.parse(links.first['href']).query)
+      assert_equal({'department' => 'Geoinformation', 'sort' => 'due_date', 'direction' => 'desc'}, params)
+    end
+  end
+
   test 'renders project data as text and diagnoses missing configuration only for administrators' do
     @project.update!(name: '<b>Projekt</b>')
     set_fields(@project, next_step: '<em>Schritt</em>')

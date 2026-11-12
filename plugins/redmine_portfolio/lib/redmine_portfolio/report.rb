@@ -4,9 +4,11 @@ module RedminePortfolio
 
     METRICS = %w[all implementation planned critical overdue stale].freeze
     FILTERS = %i[department phase health].freeze
-    HEALTH_BUCKETS = [*Definitions::HEALTH_VALUES, nil].freeze
+    COLUMNS = %w[project department phase health priority leads due_date next_step].freeze
+    HEALTH_CODES = {'Grün' => 'green', 'Gelb' => 'yellow', 'Rot' => 'red', nil => 'unassessed'}.freeze
+    DEFAULT_SORT = {sort: 'project', direction: 'asc'}.freeze
 
-    attr_reader :options, :filters, :metric, :metrics, :distribution, :rows, :visible_count
+    attr_reader :options, :filters, :metric, :metrics, :distribution, :rows, :visible_count, :sort, :direction
 
     def initialize(user:, params: {}, today: Time.find_zone!(Definitions::TIME_ZONE).today)
       @user = user
@@ -40,13 +42,60 @@ module RedminePortfolio
       filtered = visible_rows.select { |row| @filters.all? { |key, value| row[key] == value } }
       @metrics = METRICS.index_with { |key| filtered.count { |row| matches?(row, key) } }
       @rows = @metric ? filtered.select { |row| matches?(row, @metric) } : filtered
-      @distribution = HEALTH_BUCKETS.index_with do |health|
+      @distribution = HEALTH_CODES.keys.index_with do |health|
         @rows.count { |row| row.key?(:health) && row[:health] == health }
       end
       load_leads
+      @sort, @direction = DEFAULT_SORT.values
+      if COLUMNS.include?(params[:sort]) && (params[:direction].nil? || %w[asc desc].include?(params[:direction]))
+        @sort = params[:sort]
+        @direction = params[:direction] || 'asc'
+      end
+      sort_rows
+    end
+
+    def sort_params
+      sort == 'project' && direction == 'asc' ? {} : {sort: sort, direction: direction}
+    end
+
+    def sort_link_params(column)
+      filters.merge(metric: metric, sort: column, direction: sort == column && direction == 'asc' ? 'desc' : 'asc')
     end
 
     private
+
+    def sort_rows
+      entries = @rows.map do |row|
+        project = row.fetch(:project)
+        [sort_value(row), alphabetic(project.name), project.id, row]
+      end
+      @rows = entries.sort do |left, right|
+        first, second = left[0], right[0]
+        comparison = if first.nil? || second.nil?
+                       (first.nil? ? 1 : 0) <=> (second.nil? ? 1 : 0)
+                     elsif direction == 'desc'
+                       second <=> first
+                     else
+                       first <=> second
+                     end
+        comparison.zero? ? (left[1, 2] <=> right[1, 2]) : comparison
+      end.map(&:last)
+    end
+
+    def sort_value(row)
+      case sort
+      when 'project' then alphabetic(row.fetch(:project).name)
+      when 'due_date' then row[:due_date]
+      when 'leads' then alphabetic(row.fetch(:leads).join(', '))
+      when 'health'
+        alphabetic(I18n.t("ppm.health_labels.#{HEALTH_CODES.fetch(row[:health])}")) if row.key?(:health)
+      else alphabetic(row[sort.to_sym])
+      end
+    end
+
+    def alphabetic(text)
+      text.presence&.unicode_normalize(:nfd)&.gsub(/\p{Mn}/, '')&.downcase
+    end
 
     def resolve_fields
       names = Definitions::FIELDS.values.map(&:first)

@@ -58,3 +58,7 @@ Eine KPI-Kachel setzt `metric` und schränkt damit die Projektliste ein.
 localhost-Port. Die Rails-Tests laufen dort in `redmine_test`.
 Der Testlauf prüft auch den Produktionsstart und die Daten nach
 Neuerstellung der Testcontainer. GitHub Actions verwendet denselben Befehl.
+
+Unter **Administration → Konfiguration → Anzeige → Theme** lässt sich
+Opale 1.7.2 auswählen. Das Dashboard übernimmt dann die Opale-Farben und
+Tabellenstile. Shadcn ist die Vorgabe für neue Installationen.
