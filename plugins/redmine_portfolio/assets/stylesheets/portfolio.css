@@ -86,8 +86,30 @@
 }
 
 .ppm-table { max-width: 100%; overflow-x: auto; border: 1px solid var(--ppm-border); border-radius: .6rem; }
-.ppm-table table.list { width: 100%; margin: 0; border: 0; }
+.ppm-table table.list { width: 100%; margin: 0; border: 0; overflow: visible; }
 .ppm-table table.list :is(th, td) { text-align: start; padding: .6rem .65rem; }
 .ppm-table table.list tbody th { background: inherit; }
 .ppm-table table.list .ppm-date { white-space: nowrap; }
 .ppm-table table.list .ppm-next { min-width: 12rem; white-space: normal; overflow-wrap: anywhere; }
+
+.ppm-table table.list tbody th a {
+  color: var(--ppm-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--ppm-muted);
+  text-underline-offset: .18em;
+}
+
+@media (max-width: 48rem) {
+  .ppm-table table.list tr > th:first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    background: var(--background, Canvas);
+    border-inline-end: 1px solid var(--ppm-border);
+  }
+
+  .ppm-table table.list thead tr > th:first-child {
+    background: var(--muted, Canvas);
+  }
+}

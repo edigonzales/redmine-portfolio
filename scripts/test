@@ -24,6 +24,15 @@ compose up --build -d
 endpoint="http://$(compose port redmine 3000)"
 
 smoke() {
+    case "$endpoint" in
+        http://127.0.0.1:*) ;;
+        *) echo "Redmine must publish its HTTP port on IPv4 localhost" >&2; return 1 ;;
+    esac
+    db_bindings=$(docker inspect --format '{{len .HostConfig.PortBindings}}' "$(compose ps -q postgres)")
+    if [ "$db_bindings" != 0 ]; then
+        echo "PostgreSQL must not publish a host port" >&2
+        return 1
+    fi
     attempt=0
     until curl -fsS "$endpoint/login" > "$work/login.html" 2>/dev/null; do
         attempt=$((attempt + 1))

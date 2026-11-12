@@ -66,6 +66,7 @@ module RedminePortfolio
       end
     end
 
+    # Use Redmine’s bulk role lookup to avoid a membership query for each restricted field row.
     def roles_by_project
       @user.project_ids_by_role.each_with_object(Hash.new { |hash, id| hash[id] = [] }) do |(role, ids), roles|
         ids.each { |id| roles[id] << role }
