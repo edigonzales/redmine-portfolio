@@ -1,0 +1,38 @@
+en:
+  label_ppm_portfolio: Portfolio
+  ppm:
+    title: Project portfolio
+    visible_count:
+      one: "%{count} visible project"
+      other: "%{count} visible projects"
+    filter: Apply filters
+    reset: Reset
+    any: All
+    department: Department
+    phase: Phase
+    health: Health
+    priority: Priority
+    project: Project
+    leads: Project leads
+    due_date: Target date
+    next_step: Next step
+    metrics:
+      all: All projects
+      implementation: In progress
+      planned: Planned
+      critical: Critical
+      overdue: Overdue
+      stale: Status out of date
+    distribution: Project health
+    projects: Projects
+    health_labels:
+      green: Green
+      yellow: Yellow
+      red: Red
+      unassessed: Not assessed
+    empty: No portfolio projects are visible.
+    no_match: No projects match the selected filters.
+    unavailable: The portfolio is not configured yet.
+    missing_root: "Project %{identifier} is missing."
+    invalid_field: "Project field %{name} is missing or has an invalid configuration."
+    invalid_options: "The list of values for %{name} is incomplete."
