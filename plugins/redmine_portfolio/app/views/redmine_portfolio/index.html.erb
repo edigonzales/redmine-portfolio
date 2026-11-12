@@ -6,7 +6,7 @@
 <div class="ppm">
   <h2><%= t('ppm.title') %></h2>
   <% if @report %>
-    <p class="ppm-muted"><%= t('ppm.visible_count', count: @report.visible_count) %></p>
+    <p class="ppm-muted"><%= t('ppm.visible_count', count: @report.metrics.fetch('all')) %></p>
     <%= form_with url: portfolio_path, method: :get, class: 'ppm-filters' do %>
       <% @report.options.each do |key, values| %>
         <% next if values.empty? %>

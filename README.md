@@ -53,3 +53,8 @@ den Theme-Wechsel im oberen Menü und nach `docker compose down` und
 Das Dashboard ist nach der Anmeldung über [Portfolio](http://localhost:3000/portfolio)
 erreichbar. Die GET-Filter heissen `department`, `phase` und `health`.
 Eine KPI-Kachel setzt `metric` und schränkt damit die Projektliste ein.
+
+`./scripts/test` startet eine separate Compose-Umgebung mit zufälligem
+localhost-Port. Die Rails-Tests laufen dort in `redmine_test`.
+Der Testlauf prüft auch den Produktionsstart und die Daten nach
+Neuerstellung der Testcontainer. GitHub Actions verwendet denselben Befehl.

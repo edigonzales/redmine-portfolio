@@ -1,0 +1,70 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")/.."
+
+work=$(mktemp -d)
+suffix=$(openssl rand -hex 8)
+project="redmine-portfolio-test-$suffix"
+export REDMINE_PORT=0
+
+compose() {
+    docker compose --file compose.yaml --project-name "$project" --env-file "$work/.env" "$@"
+}
+
+cleanup() {
+    compose down --volumes --remove-orphans --rmi local >&2 || :
+    rm -rf "$work"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+./scripts/setup-secrets "$work/.env"
+
+compose config --quiet
+compose up --build -d
+endpoint="http://$(compose port redmine 3000)"
+
+smoke() {
+    attempt=0
+    until curl -fsS "$endpoint/login" > "$work/login.html" 2>/dev/null; do
+        attempt=$((attempt + 1))
+        if [ "$attempt" -ge 45 ]; then
+            compose logs --tail 25 redmine >&2
+            return 1
+        fi
+        sleep 2
+    done
+    asset=$(sed -n 's@.*href="\([^"]*/themes/shadcn/application-[^"]*\.css\)".*@\1@p' "$work/login.html" | head -1)
+    test -n "$asset"
+    curl -fsS -o /dev/null "$endpoint$asset"
+    test "$(curl -s -o /dev/null -w '%{http_code}' "$endpoint/portfolio")" = 302
+    compose exec -T redmine rails runner '
+      abort "unexpected runtime" unless Redmine::VERSION.to_s.start_with?("7.0.3") &&
+        ActiveRecord::Base.connection.select_value("SHOW server_version_num").to_i.between?(170000, 179999) &&
+        Setting.ui_theme == "shadcn" && Setting.login_required? && !Setting.self_registration? &&
+        !Setting.default_projects_public? && !Setting.rest_api_enabled? &&
+        !Setting.webhooks_enabled? && !ActionMailer::Base.perform_deliveries
+      admin = User.find_by!(login: "admin")
+      abort "admin credentials" if admin.check_password?("admin") ||
+        !admin.check_password?(ENV.fetch("PORTFOLIO_ADMIN_PASSWORD"))
+      reader = User.find_by!(login: "reader_geo")
+      abort "demo scope" unless RedminePortfolio::Report.new(user: admin).metrics.values == [15, 8, 3, 3, 3, 4] &&
+        RedminePortfolio::Report.new(user: reader).metrics.fetch("all") == 5 && Issue.count == 3
+      puts "Production smoke passed (versions, security settings, theme, credentials, KPIs and reader scope)."
+    '
+}
+smoke
+
+compose exec -T postgres createdb -U redmine redmine_test
+compose run --rm -T --no-deps --entrypoint sh \
+    -e RAILS_ENV=test -e REDMINE_DB_DATABASE=redmine_test redmine -ec '
+        bundle config set --local without development
+        exec /docker-entrypoint.sh bundle exec sh -ec "
+            rails test plugins/redmine_portfolio/test
+        "
+    '
+
+compose down
+compose up -d
+endpoint="http://$(compose port redmine 3000)"
+smoke
+echo "Isolated test suite and container recreation passed."

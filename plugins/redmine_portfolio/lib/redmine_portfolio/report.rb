@@ -24,6 +24,7 @@ module RedminePortfolio
       end.to_h
       projects = ProjectScope.call(root: root, user: user).preload(:custom_values).to_a
       @visible_count = projects.size
+      @roles_by_project = roles_by_project if !user.admin? && @fields.values.any? { |field| !field.visible? }
       visible_rows = projects.map { |project| read_project(project) }
       @options = FILTERS.to_h do |key|
         field = @fields.fetch(key)
@@ -38,10 +39,10 @@ module RedminePortfolio
 
       filtered = visible_rows.select { |row| @filters.all? { |key, value| row[key] == value } }
       @metrics = METRICS.index_with { |key| filtered.count { |row| matches?(row, key) } }
-      @distribution = HEALTH_BUCKETS.index_with do |health|
-        filtered.count { |row| row.key?(:health) && row[:health] == health }
-      end
       @rows = @metric ? filtered.select { |row| matches?(row, @metric) } : filtered
+      @distribution = HEALTH_BUCKETS.index_with do |health|
+        @rows.count { |row| row.key?(:health) && row[:health] == health }
+      end
       load_leads
     end
 
@@ -49,7 +50,7 @@ module RedminePortfolio
 
     def resolve_fields
       names = Definitions::FIELDS.values.map(&:first)
-      found = ProjectCustomField.where(name: names).group_by(&:name)
+      found = ProjectCustomField.where(name: names).preload(:roles).group_by(&:name)
       Definitions::FIELDS.transform_values do |name, format, values|
         matches = found.fetch(name, [])
         field = matches.first
@@ -65,10 +66,19 @@ module RedminePortfolio
       end
     end
 
+    def roles_by_project
+      @user.project_ids_by_role.each_with_object(Hash.new { |hash, id| hash[id] = [] }) do |(role, ids), roles|
+        ids.each { |id| roles[id] << role }
+      end
+    end
+
     def read_project(project)
       stored = project.custom_values.index_by(&:custom_field_id)
+      roles = @roles_by_project&.fetch(project.id, nil)
+      # Redmine uses its built-in role on public projects without a membership or role override.
+      roles ||= [@user.builtin_role] if @roles_by_project && project.is_public?
       @fields.each_with_object({project: project}) do |(key, field), row|
-        next unless field.visible_by?(project, @user)
+        next unless field.visible? || @user.admin? || field.roles.intersect?(roles || [])
 
         value = stored[field.id]&.value.presence
         row[key] = case field.field_format

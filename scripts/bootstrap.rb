@@ -4,7 +4,7 @@ definitions = RedminePortfolio::Definitions
 
 # Serialise first-time initialisation across application starts and manual runners.
 User.transaction do
-  User.lock.find(User.anonymous.id)
+  AnonymousUser.unscoped.lock.find(User.anonymous.id)
   Setting.check_cache
   admin = User.lock.find_by(login: 'admin', admin: true)
 

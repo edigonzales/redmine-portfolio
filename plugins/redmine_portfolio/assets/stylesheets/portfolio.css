@@ -1,7 +1,7 @@
 .ppm {
   --ppm-border: var(--border, #d1d5db);
-  --ppm-card: var(--card, #fff);
-  --ppm-text: var(--foreground, #202124);
+  --ppm-card: var(--card, Canvas);
+  --ppm-text: var(--foreground, CanvasText);
   --ppm-muted: var(--muted-foreground, #52525b);
   --ppm-focus: var(--ring, #2563eb);
   color: var(--ppm-text);
